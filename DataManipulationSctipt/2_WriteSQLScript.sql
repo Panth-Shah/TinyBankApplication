@@ -63,8 +63,12 @@ IF @FromAccountBalance - @AmountRequested >= 0
 			WHERE AccountId = @MoveFromAccountId
 
 			--Update Account table with changes in CurrentAccountBalance
-			MERGE [dbo].[Account] A 
-				USING @CustomerAccountInformation CA
+			--Q: How is this Merge Thread Safe?
+			--Ans: Merge is an atomic DML, meaning that either all changes are commited or all changed are rolled back.
+			-------In contrast to multi-statement conditional INSERT/UPDATE method, no explicite transaction is reuqired for Merge.
+			-------However, we still will be needing HOLDLOCK to prevent duplicate keys in case of high concurrency.
+			MERGE [dbo].[Account] WITH (HOLDLOCK) AS A
+				USING @CustomerAccountInformation AS CA
 			ON (CA.AccountId = A.AccountId)
 			WHEN MATCHED
 				THEN UPDATE SET
