@@ -208,7 +208,42 @@ namespace TinyBankingAPI.Controllers
             {
                 return Request.CreateErrorResponse(HttpStatusCode.BadRequest, ex);
             }
+        }
+        public HttpResponseMessage Delete(int id)
+        {
+            try
+            {
+                using (BankingDatabaseEntities entities = new BankingDatabaseEntities())
+                {
+                    var _recordToDelete = entities.CustomerAccounts.Where(e => e.CustomerId == id).ToList();
+                    var _customerRecordToDelete = entities.Customers.FirstOrDefault(e => e.CustomerId == id);
+                    List<Account> _customerAccountToBeDeleted = new List<Account>();
 
+                    if (_customerRecordToDelete != null || _recordToDelete.Count > 0)
+                    {
+                        foreach (var _customer in _recordToDelete)
+                        {
+                            _customerAccountToBeDeleted.Add(entities.Accounts.FirstOrDefault(x => x.AccountId == _customer.AccountId));
+                        }
+                    }
+                        if (_recordToDelete == null || _recordToDelete.Count == 0)
+                    {
+                        return Request.CreateErrorResponse(HttpStatusCode.NotFound,
+                            "Customer with Id = " + id.ToString() + " not found to delete!");
+                    }
+                    else
+                    {
+                        entities.Customers.Remove(_customerRecordToDelete);
+                        entities.Accounts.RemoveRange(_customerAccountToBeDeleted);
+                        entities.SaveChanges();
+                        return Request.CreateResponse(HttpStatusCode.OK);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.BadRequest, ex);
+            }
         }
     }
 }
