@@ -105,6 +105,7 @@
     </None>
   </ItemGroup>
   <ItemGroup>
+    <Content Include="DatabaseDesign.JPG" />
     <Content Include="TinyBankingModel.Context.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <DependentUpon>TinyBankingModel.edmx</DependentUpon>
