@@ -1,0 +1,8 @@
+﻿CREATE TABLE [dbo].[AccountType]
+(
+	[AccountTypeId] TINYINT NOT NULL PRIMARY KEY, 
+    [Name] NCHAR(10) NOT NULL, 
+	[Active] BIT NOT NULL DEFAULT 1,
+	[LastUpdate] DATETIME NOT NULL DEFAULT GETDATE(), 
+    [CreateDate] DATETIME NOT NULL DEFAULT GETDATE(),
+);

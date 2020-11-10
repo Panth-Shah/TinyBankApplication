@@ -1,0 +1,8 @@
+﻿CREATE TABLE [dbo].[AccountStatus]
+(
+	[AccountStatusId] TINYINT NOT NULL PRIMARY KEY, 
+    [Name] NVARCHAR(256) NOT NULL, 
+    [Active] INT NOT NULL DEFAULT 1,
+	[LastUpdate] DATETIME NOT NULL DEFAULT GETDATE(), 
+    [CreateDate] DATETIME NOT NULL DEFAULT GETDATE(),
+)
