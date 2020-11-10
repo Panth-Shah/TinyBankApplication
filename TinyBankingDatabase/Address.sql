@@ -10,6 +10,6 @@
 	[StateId] TINYINT NOT NULL,
 	[LastUpdate] DATETIME NOT NULL DEFAULT GETDATE(), 
     [CreateDate] DATETIME NOT NULL DEFAULT GETDATE(),
-    CONSTRAINT [FK_Address_CustomerId] FOREIGN KEY ([CustomerId]) REFERENCES [Customer]([CustomerId]), 
+    CONSTRAINT [FK_Address_CustomerId] FOREIGN KEY ([CustomerId]) REFERENCES [Customer]([CustomerId]) ON DELETE CASCADE, 
     CONSTRAINT [FK_Address_StateId] FOREIGN KEY ([StateId]) REFERENCES [State]([StateId])
 )
