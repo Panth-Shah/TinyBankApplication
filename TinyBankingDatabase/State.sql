@@ -1,7 +1,7 @@
 ﻿CREATE TABLE [dbo].[State]
 (
-	[StateId] INT NOT NULL PRIMARY KEY,
-	[AddressId] INT NOT NULL,
+	[StateId] TINYINT NOT NULL PRIMARY KEY IDENTITY,
+	[AddressId] TINYINT NOT NULL,
     [Name] NVARCHAR(256) NOT NULL, 
     [Abbreviation] CHAR(2) NOT NULL, 
     [LastUpdate] DATETIME NOT NULL DEFAULT GETDATE(), 
