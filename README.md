@@ -25,3 +25,5 @@ Pseudo code or actual SQL is possible for this. SQL Preferred but exact syntax n
 4) Design an API
   Design a REST api for this imaginary bank you created.
   You can do this anyway you like; you can send a simple text based specification of the API, actual .NET code, or pseudo code. If you do not believe REST is the right style, feel free to do it differently with a justification. Here is an example of acceptable style and level of detail: https://petstore.swagger.io/#/
+  
+![alt text](https://github.com/Panth-Shah/TinyBankApplication/blob/master/TinyBankingAPI/SwaggerAPI.PNG)
