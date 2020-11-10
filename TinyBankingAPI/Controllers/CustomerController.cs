@@ -12,6 +12,8 @@ namespace TinyBankingAPI.Controllers
 {
     public class CustomerController : ApiController
     {
+        //private readonly PopulateDataEntity _populateDataEntity = null;
+
         public IHttpActionResult GetAllCustomers()
         {
             IEnumerable<CustomerViewModel> customers = null;
@@ -75,18 +77,131 @@ namespace TinyBankingAPI.Controllers
             }
         }
 
-        public HttpResponseMessage Post([FromBody] Customer customer)
+        public HttpResponseMessage Post([FromBody] CustomerViewModel customer)
         {
+            List<AddressViewModel> customerAddress = null;
+            List<AccountViewModel> customerAccount = null;
             try
             {
                 using (BankingDatabaseEntities entities = new BankingDatabaseEntities())
                 {
-                    entities.Customers.Add(customer);
+                    Customer _customer = new Customer();
+                    _customer.CustomerFirstName = customer.FirstName;
+                    _customer.CustomerMiddleName = customer.MiddleName;
+                    _customer.CustomerLastName = customer.LastName;
+                    _customer.EmailAddress = customer.EmailAddress;
+                    _customer.FaxNumber = customer.FaxNumber;
+                    _customer.PhoneNumber = customer.PhoneNumber;
+                    _customer.CreateDate = DateTime.Now;
+                    _customer.LastUpdate = DateTime.Now;
+
+                    entities.Customers.Add(_customer);
+                    entities.SaveChanges();
+
+                    customerAddress = customer.customerAddress;
+                    List<Address> _customerAddress = new List<Address>();
+
+                    foreach (var address in customerAddress)
+                    {
+                        _customerAddress.Add(new Address
+                        {
+                            CustomerId = _customer.CustomerId,
+                            Address1 = address.Address1,
+                            Address2 = address.Address2,
+                            Address3 = address.Address3,
+                            City = address.City,
+                            ZipCode = address.ZipCode,
+                            StateId = entities.States.FirstOrDefault(x => Equals(x.Abbreviation, address.State)).StateId,
+                            CreateDate = DateTime.Now,
+                            LastUpdate = DateTime.Now
+                        });
+                    }
+
+                    entities.Addresses.AddRange(_customerAddress);
+                    entities.SaveChanges();
+
+                    customerAccount = customer.AccountInformation;
+                    List<Account> _customerAccount = new List<Account>();
+                    foreach (var account in customerAccount)
+                    {
+                        _customerAccount.Add(new Account
+                        {
+                            
+                            AccountNumber = account.AccountNumber,
+                            CurrentAccountBalance = account.CurrentAccountBalance,
+                            AccountStatusId = entities.AccountStatus.FirstOrDefault(x => x.Name == "Active").AccountStatusId,
+                            AccountTypeId = entities.AccountTypes.FirstOrDefault(x => x.Name == account.AccountType).AccountTypeId,
+                            Active = account.CurrentAccountBalance > 0 ? true : false,
+                            CreateDate = DateTime.Now,
+                            LastUpdate = DateTime.Now
+                        });
+                    }
+
+                    entities.Accounts.AddRange(_customerAccount);
+                    entities.SaveChanges();
+
+                    List<CustomerAccount> _customerAccountMatch = new List<CustomerAccount>();
+                    foreach (var account in _customerAccount)
+                    {
+                        _customerAccountMatch.Add(new CustomerAccount
+                        {
+                            CustomerId = _customer.CustomerId,
+                            AccountId = account.AccountId
+                        });
+                    }
+
+                    entities.CustomerAccounts.AddRange(_customerAccountMatch);
                     entities.SaveChanges();
 
                     var message = Request.CreateResponse(HttpStatusCode.Created, customer);
-                    message.Headers.Location = new Uri(Request.RequestUri + customer.CustomerId.ToString());
+                    message.Headers.Location = new Uri(Request.RequestUri + _customer.CustomerId.ToString());
                     return message;
+                }
+            }
+            catch (Exception ex)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.BadRequest, ex);
+            }
+
+        }
+
+        public HttpResponseMessage Put(int id, [FromBody] CustomerViewModel customer)
+        {
+            try
+            {
+
+                using (BankingDatabaseEntities entities = new BankingDatabaseEntities())
+                {
+                    var existingCustomers = entities.CustomerAccounts.Where(x => x.CustomerId == id).ToList();
+                    var customers = entities.Customers.FirstOrDefault(x => x.CustomerId == id);
+                    List<Account> customerAccounts = new List<Account>();
+
+                    if (existingCustomers != null || existingCustomers.Count > 0)
+                    {
+                        foreach (var _customer in existingCustomers)
+                        {
+                            customerAccounts.Add(entities.Accounts.FirstOrDefault(x => x.AccountId == _customer.AccountId));
+                        }
+
+                        customers.CustomerFirstName = customer.FirstName;
+                        customers.CustomerLastName = customer.LastName;
+                        customers.CustomerMiddleName = customer.MiddleName;
+                        customers.EmailAddress = customer.EmailAddress;
+                        customers.FaxNumber = customer.FaxNumber;
+                        customers.PhoneNumber = customer.PhoneNumber;
+                        customers.LastUpdate = DateTime.Now;
+
+                        entities.SaveChanges();
+
+                        var message = Request.CreateResponse(HttpStatusCode.Created, customer);
+                        message.Headers.Location = new Uri(Request.RequestUri + customers.CustomerId.ToString());
+                        return message;
+                    }
+                    else
+                    {
+                        return Request.CreateErrorResponse(HttpStatusCode.NotFound, "Customer with Id " + id.ToString() + " not found to update!");
+                    }
+
                 }
             }
             catch (Exception ex)
