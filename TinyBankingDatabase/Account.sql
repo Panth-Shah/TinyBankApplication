@@ -1,6 +1,6 @@
 ﻿CREATE TABLE [dbo].[Account]
 (
-	[AccountId] TINYINT NOT NULL PRIMARY KEY IDENTITY, 
+	[AccountId] TINYINT NOT NULL IDENTITY(1,1) PRIMARY KEY, 
     [AccountNumber] INT NOT NULL, 
     [CurrentAccountBalance] DECIMAL(19, 4) NOT NULL, 
 	[Active] BIT NOT NULL DEFAULT 1,

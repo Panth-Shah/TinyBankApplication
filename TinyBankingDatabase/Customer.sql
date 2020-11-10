@@ -1,6 +1,6 @@
 ﻿CREATE TABLE [dbo].[Customer]
 (
-	[CustomerId] TINYINT NOT NULL PRIMARY KEY IDENTITY, 
+	[CustomerId] TINYINT NOT NULL IDENTITY(1,1) PRIMARY KEY, 
     [CustomerFirstName] NVARCHAR(256) NOT NULL,
 	[CustomerMiddleName] NVARCHAR(50) NULL,
     [CustomerLastName] NVARCHAR(256) NULL, 
