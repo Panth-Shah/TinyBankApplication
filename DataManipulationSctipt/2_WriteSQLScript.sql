@@ -20,79 +20,57 @@ AS
 
 DECLARE @FromAccountBalance decimal,
 		@ToAccountBalance decimal,
-		@RetryCount bit;
-
-DECLARE @CustomerAccountInformation TABLE
-	(
-		Row# INT NOT NULL identity(1,1) PRIMARY KEY,
-		CustomerId INT NOT NULL,
-		AccountId INT NOT NULL,
-		CurrentAccountBalance DECIMAL NOT NULL,
-		IsActive BIT NOT NULL
-	)
-
-BEGIN
-	-- SET NOCOUNT ON added to prevent extra result sets from
-	-- interfering with SELECT statements.
-	SET NOCOUNT ON;
-
-    -- Insert statements for procedure here
-	INSERT INTO @CustomerAccountInformation
-	SELECT C.CustomerId, A.AccountId, A.CurrentAccountBalance, A.Active 
-	FROM [dbo].[Customer] C INNER JOIN
-	[dbo].[CustomerAccount] CA ON C.CustomerId = CA.CustomerId
-	INNER JOIN [dbo].[Account] A ON CA.AccountId = A.AccountId
-
-	SELECT @FromAccountBalance = A.CurrentAccountBalance 
-		FROM @CustomerAccountInformation A WHERE AccountId = @MoveFromAccountId
-END
+		@RetryCount bit = 0;
 
 RETRY:
-IF @FromAccountBalance - @AmountRequested >= 0
-	BEGIN
+	BEGIN TRY
 		BEGIN TRANSACTION
-		BEGIN TRY
-			--Deposite money to Account 2
-			UPDATE @CustomerAccountInformation
-			SET CurrentAccountBalance = CurrentAccountBalance + @AmountRequested
-			WHERE AccountId = @MoveToAccountId
+			BEGIN
+				SELECT @FromAccountBalance = A.CurrentAccountBalance
+				FROM [dbo].[Account] A
+				WITH(XLOCK, ROWLOCK)
+				WHERE A.AccountId = @MoveFromAccountId
 
-			--Withdraw money from Account 1
-			UPDATE @CustomerAccountInformation
-			SET CurrentAccountBalance = CurrentAccountBalance - @AmountRequested
-			WHERE AccountId = @MoveFromAccountId
+				SELECT @ToAccountBalance = A.CurrentAccountBalance
+				FROM [dbo].[Account] A
+				WITH(XLOCK, ROWLOCK)
+				WHERE A.AccountId = @MoveToAccountId
+			END
+			IF @FromAccountBalance - @AmountRequested >= 0
+				BEGIN
+					UPDATE [dbo].[Account]
+					SET CurrentAccountBalance = CurrentAccountBalance - @AmountRequested
+					WHERE AccountId = @MoveFromAccountId
 
-			--Update Account table with changes in CurrentAccountBalance
-			--Q: How is this Merge Thread Safe?
-			--Ans: Merge is an atomic DML, meaning that either all changes are commited or all changed are rolled back.
-			-------In contrast to multi-statement conditional INSERT/UPDATE method, no explicite transaction is reuqired for Merge.
-			-------However, we still will be needing HOLDLOCK to prevent duplicate keys in case of high concurrency.
-			MERGE [dbo].[Account] WITH (HOLDLOCK) AS A
-				USING @CustomerAccountInformation AS CA
-			ON (CA.AccountId = A.AccountId)
-			WHEN MATCHED
-				THEN UPDATE SET
-					A.CurrentAccountBalance = CA.CurrentAccountBalance,
-					A.LastUpdate = GETDATE();
+					UPDATE [dbo].[Account]
+					SET CurrentAccountBalance = CurrentAccountBalance + @AmountRequested
+					WHERE AccountId = @MoveToAccountId
 
-			COMMIT TRANSACTION
-			--Raise Success Message upon completion
-			RAISERROR ('Fund Trasfer Successful', 10, 1);
-			RETURN 0;
-		END TRY
-		BEGIN CATCH
-			PRINT '-------Rollback Transaction-------'
-			IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION
-			--If Deadlock, try to resolve it 5 times before completely failing
-			IF ERROR_NUMBER() = 1205
+					COMMIT TRANSACTION
+					RAISERROR ('Fund Trasfer Success', 10, 1);
+				END
+			ELSE
+			BEGIN
+				--Raise Failed Message upon rollback
+				RAISERROR ('Fund Trasfer Failed', 10, 1);
+				IF @@TRANCOUNT > 0 
+					ROLLBACK TRANSACTION
+			END
+	END TRY
+	BEGIN CATCH
+		PRINT '-------Rollback Transaction-------'
+		IF @@TRANCOUNT > 0
+			ROLLBACK TRANSACTION
+		--If Deadlock, try to resolve it 5 times before completely failing
+		IF ERROR_NUMBER() = 1205
 			BEGIN
 				SET @RetryCount = @RetryCount + 1
 			END
-			IF @RetryCount <= 5
+		IF @RetryCount <= 5
 			BEGIN
 				GOTO RETRY
 			END
-			ELSE
+		ELSE
 			BEGIN
 				--Raise Error Message upon failure
 				DECLARE @ErrMsg AS NVARCHAR(4000) = '',
@@ -106,7 +84,5 @@ IF @FromAccountBalance - @AmountRequested >= 0
 				RAISERROR (@ErrMsg, @ErrSeverity, @ErrState);
 				PRINT 'Deadlock not resolved after 5 attempts'
 			END
-		END CATCH
-	END
+	END CATCH
 GO
- 
