@@ -4,8 +4,7 @@ Design Tiny Bank Application
 
 1) Design database
 Design a database to store a person’s bank account holding, for a very tiny, imaginary bank
-This is the information that must be stored: 
-
+This is the information that must be stored:
 •	Person’s Name (string) 
 •	Account Numbers (integer) 
 •	Account balances (ie amount of money in the account)
